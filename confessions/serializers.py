@@ -18,7 +18,7 @@ class ConfessionRecordSerializer(serializers.ModelSerializer):
 
 
 class DailyConfessionAttendanceSerializer(serializers.Serializer):
-    id = serializers.IntegerField(source='pk')
+    id = serializers.UUIDField(source='pk')
     full_name = serializers.CharField()
     phone = serializers.CharField()
     attended = serializers.BooleanField()
