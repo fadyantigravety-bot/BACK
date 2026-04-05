@@ -1,0 +1,1 @@
+# mass_attendance app
