@@ -43,7 +43,25 @@ class PrayerLogViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def my_today(self, request):
         """Get today's prayer logs for the authenticated member."""
+        from datetime import datetime
         today = timezone.localdate()
+        
+        # Auto-generate if missing for active prayers
+        active_prayers = PrayerDefinition.objects.filter(is_active=True)
+        for prayer in active_prayers:
+            scheduled_dt = timezone.make_aware(
+                datetime.combine(today, prayer.scheduled_time)
+            )
+            PrayerLog.objects.get_or_create(
+                member=request.user,
+                prayer=prayer,
+                date=today,
+                defaults={
+                    'status': 'pending',
+                    'scheduled_time': scheduled_dt,
+                },
+            )
+            
         logs = PrayerLog.objects.filter(
             member=request.user, date=today
         ).select_related('prayer')
