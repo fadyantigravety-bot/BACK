@@ -26,7 +26,7 @@ class FridayMeetingSessionViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ('create', 'update', 'partial_update', 'destroy'):
-            return [IsPriestOrServiceLeader()]
+            return [IsLeadership()]
         return [IsAuthenticated()]
 
     def perform_create(self, serializer):
