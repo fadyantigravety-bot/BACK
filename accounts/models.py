@@ -115,6 +115,10 @@ class MemberProfile(models.Model):
         MALE = 'male', 'ذكر'
         FEMALE = 'female', 'أنثى'
 
+    class MeetingType(models.TextChoices):
+        UNIVERSITY = 'university', 'جامعة'
+        HIGH_SCHOOL = 'high_school', 'ثانوي'
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='member_profile')
     date_of_birth = models.DateField('تاريخ الميلاد')
@@ -136,6 +140,9 @@ class MemberProfile(models.Model):
     is_active_member = models.BooleanField('عضو نشط', default=True)
     join_date = models.DateField('تاريخ الانضمام', auto_now_add=True)
     notes = models.TextField('ملاحظات', blank=True, null=True)
+    meeting_type = models.CharField(
+        'مرحلة الاجتماع', max_length=20, choices=MeetingType.choices, blank=True, null=True
+    )
 
     class Meta:
         verbose_name = 'ملف المخدوم'
