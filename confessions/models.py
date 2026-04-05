@@ -35,3 +35,32 @@ class ConfessionRecord(models.Model):
     def __str__(self):
         status = 'اعترف' if self.has_confessed else 'لم يعترف'
         return f'{self.member} - {status}'
+
+
+class ConfessionAttendance(models.Model):
+    """Tracks weekly confession attendance on specific dates (Saturday/Sunday)."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    member = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='confession_attendances', verbose_name='المخدوم',
+    )
+    date = models.DateField('التاريخ')
+    attended = models.BooleanField('حضر', default=False)
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, related_name='recorded_confession_attendances', verbose_name='سُجل بواسطة',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'حضور اعتراف'
+        verbose_name_plural = 'سجلات حضور الاعترافات'
+        indexes = [
+            models.Index(fields=['member', 'date']),
+        ]
+        unique_together = [['member', 'date']]
+        ordering = ['-date']
+
+    def __str__(self):
+        status = 'اعترف' if self.attended else 'لم يعترف'
+        return f'{self.member} - {self.date} - {status}'
