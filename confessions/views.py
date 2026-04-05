@@ -82,8 +82,13 @@ class DailyConfessionListView(views.APIView):
         elif user.role not in ['priest', 'superadmin']:
             qs = qs.none()
 
+        target_weekday = target_date.weekday()
+        days_since_saturday = (target_weekday + 2) % 7
+        week_start = target_date - datetime.timedelta(days=days_since_saturday)
+        week_end = week_start + datetime.timedelta(days=6)
+
         attended_subquery = ConfessionAttendance.objects.filter(
-            member=OuterRef('pk'), date=target_date, attended=True
+            member=OuterRef('pk'), date__range=[week_start, week_end], attended=True
         )
 
         qs = qs.annotate(
@@ -110,27 +115,38 @@ class MarkConfessionAttendanceView(views.APIView):
         except ValueError:
             return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
             
-        attendance, _ = ConfessionAttendance.objects.get_or_create(
-            member_id=member_id, date=target_date, defaults={'recorded_by': request.user}
-        )
-        if not attendance.attended:
-            attendance.attended = True
-            attendance.recorded_by = request.user
-            attendance.save()
-            
-            # Update legacy profile tracker
-            ConfessionRecord.objects.update_or_create(
-                member_id=member_id,
-                defaults={
-                    'has_confessed': True,
-                    'last_confession_date': target_date,
-                    'is_overdue': False,
-                    'recorded_by': request.user
-                }
-            )
+        target_weekday = target_date.weekday()
+        days_since_saturday = (target_weekday + 2) % 7
+        week_start = target_date - datetime.timedelta(days=days_since_saturday)
+        week_end = week_start + datetime.timedelta(days=6)
 
-            log_action(request.user, 'daily_confession_marked', 'ConfessionAttendance',
-                       attendance.id, {'member_id': str(member_id), 'date': date_str})
+        # Check if any attendance exists for this week
+        existing = ConfessionAttendance.objects.filter(
+            member_id=member_id, date__range=[week_start, week_end], attended=True
+        ).exists()
+
+        if not existing:
+            attendance, _ = ConfessionAttendance.objects.get_or_create(
+                member_id=member_id, date=target_date, defaults={'recorded_by': request.user}
+            )
+            if not attendance.attended:
+                attendance.attended = True
+                attendance.recorded_by = request.user
+                attendance.save()
+                
+                # Update legacy profile tracker
+                ConfessionRecord.objects.update_or_create(
+                    member_id=member_id,
+                    defaults={
+                        'has_confessed': True,
+                        'last_confession_date': target_date,
+                        'is_overdue': False,
+                        'recorded_by': request.user
+                    }
+                )
+
+                log_action(request.user, 'daily_confession_marked', 'ConfessionAttendance',
+                           attendance.id, {'member_id': str(member_id), 'date': date_str})
                        
         return Response({"status": "success"})
 
