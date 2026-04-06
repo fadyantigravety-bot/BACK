@@ -16,32 +16,50 @@ class DashboardStatsView(APIView):
         user = request.user
         member_ids = get_scoped_member_users(user)
         today = timezone.localdate()
+        period = request.query_params.get('period', 'today') # today, week, month
+        
+        # Calculate start and end dates based on period
+        if period == 'week':
+            start_date = today - timedelta(days=today.weekday())
+            end_date = start_date + timedelta(days=6)
+        elif period == 'month':
+            start_date = today.replace(day=1)
+            next_month = start_date.replace(month=start_date.month % 12 + 1, year=start_date.year + (start_date.month // 12))
+            end_date = next_month - timedelta(days=1)
+        else: # today
+            start_date = today
+            end_date = today
 
         stats = {}
 
         # Total members in scope
         stats['total_members'] = member_ids.count() if hasattr(member_ids, 'count') else len(member_ids)
 
-        # Today's prayer completion
+        # Prayer completion for period
         from prayers.models import PrayerLog
-        prayer_qs = PrayerLog.objects.filter(member_id__in=member_ids, date=today)
+        prayer_qs = PrayerLog.objects.filter(member_id__in=member_ids, date__range=[start_date, end_date])
         total_prayers = prayer_qs.count()
         completed_prayers = prayer_qs.filter(status='completed').count()
-        stats['prayer_completion_today'] = {
+        stats['prayer_completion'] = {
             'total': total_prayers,
             'completed': completed_prayers,
             'rate': round(completed_prayers / total_prayers * 100, 1) if total_prayers > 0 else 0,
         }
 
-        # Latest Friday attendance
+        # Friday attendance (latest or all in period? Let's do all sessions in period)
         from friday_attendance.models import FridayMeetingSession, FridayAttendanceRecord
-        latest_session = FridayMeetingSession.objects.order_by('-date').first()
-        if latest_session:
+        sessions_in_period = FridayMeetingSession.objects.filter(date__range=[start_date, end_date])
+        
+        # If no sessions in period, fallback to latest
+        if not sessions_in_period.exists() and period == 'today':
+           sessions_in_period = FridayMeetingSession.objects.order_by('-date')[:1]
+
+        if sessions_in_period.exists():
             att_qs = FridayAttendanceRecord.objects.filter(
-                session=latest_session, member_id__in=member_ids
+                session__in=sessions_in_period, member_id__in=member_ids
             )
-            stats['latest_friday'] = {
-                'date': str(latest_session.date),
+            stats['friday'] = {
+                'title': 'حضور الجمعة' if period != 'today' else f"حضور آخر جمعة ({sessions_in_period.first().date})",
                 'present': att_qs.filter(status='present').count(),
                 'absent': att_qs.filter(status='absent').count(),
                 'total': att_qs.count(),
@@ -50,7 +68,7 @@ class DashboardStatsView(APIView):
         # Pending follow-ups
         from followups.models import FollowUpRecord
         stats['pending_followups'] = FollowUpRecord.objects.filter(
-            member_id__in=member_ids, status='pending'
+            member_id__in=member_ids, status='pending', date__range=[start_date, end_date]
         ).count()
         stats['overdue_followups'] = FollowUpRecord.objects.filter(
             member_id__in=member_ids, status='overdue'
