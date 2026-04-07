@@ -61,11 +61,25 @@ class ConversationViewSet(viewsets.ModelViewSet):
             )
 
         if data.get('initial_message'):
-            Message.objects.create(
+            msg = Message.objects.create(
                 conversation=conv,
                 sender=request.user,
                 content=data['initial_message'],
             )
+            
+            participants = ConversationParticipant.objects.filter(
+                conversation=conv
+            ).exclude(user=request.user).select_related('user')
+            for p in participants:
+                if not p.is_muted:
+                    create_notification(
+                        recipient=p.user,
+                        title='رسالة جديدة',
+                        body=f'{request.user.full_name}: {msg.content[:80]}',
+                        notification_type='message',
+                        reference_type='Conversation',
+                        reference_id=conv.id,
+                    )
 
         return Response(
             ConversationListSerializer(conv, context={'request': request}).data,

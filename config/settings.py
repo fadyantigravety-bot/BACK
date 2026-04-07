@@ -175,8 +175,9 @@ CELERY_TIMEZONE = 'Africa/Cairo'
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ORIGINS', '').split(',') if not DEBUG else []
 
-# --- Firebase (FCM) ---
-FIREBASE_CREDENTIALS_PATH = os.environ.get('FIREBASE_CREDENTIALS_PATH', '')
+# --- OneSignal Push Notifications ---
+ONESIGNAL_APP_ID = os.environ.get('ONESIGNAL_APP_ID', '5a3c210f-6911-4f06-b0b5-7a6de94119d6')
+ONESIGNAL_REST_API_KEY = os.environ.get('ONESIGNAL_REST_API_KEY', '')
 
 # --- App-specific settings ---
 CONFESSION_OVERDUE_DAYS = int(os.environ.get('CONFESSION_OVERDUE_DAYS', '30'))
