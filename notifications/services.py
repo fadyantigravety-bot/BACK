@@ -106,11 +106,55 @@ def create_notification(recipient, title, body, notification_type,
 
 
 def send_bulk_push(users, title, body, notification_type, data=None):
-    """Send push notifications to multiple users."""
+    """Send push notifications to multiple users using OneSignal bulk."""
+    if not users:
+        return
+
+    # First, create in-app notifications
+    notifications_to_create = []
+    user_ids = []
+    
     for user in users:
-        create_notification(
-            recipient=user,
-            title=title,
-            body=body,
-            notification_type=notification_type,
+        notifications_to_create.append(
+            Notification(
+                recipient=user,
+                title=title,
+                body=body,
+                notification_type=notification_type,
+                is_pushed=True
+            )
         )
+        if user.notifications_enabled:
+            user_ids.append(str(user.id))
+            
+    Notification.objects.bulk_create(notifications_to_create)
+
+    # Next, send one bulk request to OneSignal
+    app_id = getattr(settings, 'ONESIGNAL_APP_ID', None)
+    rest_key = getattr(settings, 'ONESIGNAL_REST_API_KEY', None)
+    
+    if app_id and rest_key and user_ids:
+        # OneSignal limits aliases to 2000 per request, batching if necessary
+        chunk_size = 2000
+        for i in range(0, len(user_ids), chunk_size):
+            chunk_ids = user_ids[i:i + chunk_size]
+            url = "https://onesignal.com/api/v1/notifications"
+            payload = {
+                "app_id": app_id,
+                "target_channel": "push",
+                "include_aliases": {
+                    "external_id": chunk_ids
+                },
+                "headings": {"en": title, "ar": title},
+                "contents": {"en": body, "ar": body},
+                "data": data or {"type": notification_type}
+            }
+            headers = {
+                "accept": "application/json",
+                "Authorization": f"Basic {rest_key}",
+                "content-type": "application/json"
+            }
+            try:
+                requests.post(url, json=payload, headers=headers, timeout=10)
+            except Exception as e:
+                logger.error(f'OneSignal bulk push failed: {e}')
