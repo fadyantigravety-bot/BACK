@@ -30,6 +30,7 @@ def send_push_notification(user, title, body, data=None):
         "contents": {"en": body, "ar": body},
         "data": data or {},
         "small_icon": "ic_notification",
+        "large_icon": "ic_large_notification",
         "android_accent_color": "FF1B5E7B",
         "android_led_color": "FF1B5E7B",
     }
@@ -150,7 +151,11 @@ def send_bulk_push(users, title, body, notification_type, data=None):
                 },
                 "headings": {"en": title, "ar": title},
                 "contents": {"en": body, "ar": body},
-                "data": data or {"type": notification_type}
+                "data": data or {"type": notification_type},
+                "small_icon": "ic_notification",
+                "large_icon": "ic_large_notification",
+                "android_accent_color": "FF1B5E7B",
+                "android_led_color": "FF1B5E7B",
             }
             headers = {
                 "accept": "application/json",
