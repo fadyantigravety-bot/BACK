@@ -99,6 +99,11 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_fields = ['role', 'is_active']
     search_fields = ['first_name', 'last_name', 'phone']
 
+    def paginate_queryset(self, queryset):
+        if self.request.query_params.get('nopage') == 'true':
+            return None
+        return super().paginate_queryset(queryset)
+
     def get_queryset(self):
         user = self.request.user
         if user.role == 'priest':

@@ -9,7 +9,7 @@ class UserMinimalSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'phone', 'first_name', 'last_name', 'full_name', 'role', 'avatar']
+        fields = ['id', 'phone', 'first_name', 'last_name', 'full_name', 'role', 'avatar', 'is_active']
 
 
 class PriestProfileSerializer(serializers.ModelSerializer):
