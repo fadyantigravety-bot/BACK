@@ -72,7 +72,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def save_message(self, content):
-        from messaging.models import Message, Conversation
+        from messaging.models import Message, Conversation, ConversationParticipant
+        from notifications.services import create_notification
+        
         message = Message.objects.create(
             conversation_id=self.conversation_id,
             sender=self.user,
@@ -83,6 +85,23 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         Conversation.objects.filter(id=self.conversation_id).update(
             updated_at=timezone.now()
         )
+        
+        # Notify other participants via OneSignal
+        participants = ConversationParticipant.objects.filter(
+            conversation_id=self.conversation_id
+        ).exclude(user=self.user).select_related('user')
+        
+        for p in participants:
+            if not p.is_muted:
+                create_notification(
+                    recipient=p.user,
+                    title='رسالة جديدة',
+                    body=f'{self.user.full_name}: {message.content[:80]}',
+                    notification_type='message',
+                    reference_type='Conversation',
+                    reference_id=str(self.conversation_id),
+                )
+
         return {
             'type': 'message_sent',
             'id': str(message.id),
