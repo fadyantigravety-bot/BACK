@@ -28,7 +28,10 @@ def send_push_notification(user, title, body, data=None):
         },
         "headings": {"en": title, "ar": title},
         "contents": {"en": body, "ar": body},
-        "data": data or {}
+        "data": data or {},
+        "small_icon": "ic_notification",
+        "android_accent_color": "FF1B5E7B",
+        "android_led_color": "FF1B5E7B",
     }
     
     headers = {
