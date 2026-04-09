@@ -29,7 +29,6 @@ INSTALLED_APPS = [
     'django_filters',
     'corsheaders',
     'channels',
-    'django_celery_beat',
     # Local apps
     'accounts.apps.AccountsConfig',
     'church.apps.ChurchConfig',
@@ -170,7 +169,6 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Africa/Cairo'
-CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 # --- CORS ---
 CORS_ALLOW_ALL_ORIGINS = DEBUG
