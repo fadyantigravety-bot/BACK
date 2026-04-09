@@ -22,7 +22,7 @@ def create_daily_prayer_logs():
         has_new = False
         for prayer in active_prayers:
             scheduled_dt = timezone.make_aware(
-                datetime.combine(today, prayer.scheduled_time)
+                datetime.combine(today,  prayer.scheduled_time)
             )
             _, created = PrayerLog.objects.get_or_create(
                 member=member,
