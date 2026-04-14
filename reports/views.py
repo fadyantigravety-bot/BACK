@@ -137,3 +137,56 @@ class BirthdayListView(APIView):
             'date_of_birth', 'service_group__name',
         )
         return Response(list(data))
+
+
+class MemberActivityHeatmapView(APIView):
+    """Returns a daily intensity level (0-4) based on member's spiritual activities over the past N days."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        days_param = int(request.query_params.get('days', 150))
+        today = timezone.localdate()
+        start_date = today - timedelta(days=days_param)
+
+        activity_map = {}
+        for d in range(days_param + 1):
+            activity_map[(start_date + timedelta(days=d)).isoformat()] = 0
+
+        # Prayers
+        from prayers.models import PrayerLog
+        prayer_logs = PrayerLog.objects.filter(
+            member=user, date__range=[start_date, today], status='completed'
+        ).values('date').annotate(count=Count('id'))
+        for log in prayer_logs:
+            date_str = log['date'].isoformat()
+            if date_str in activity_map:
+                activity_map[date_str] += min(log['count'], 2)  # up to +2 for prayers
+
+        # Friday Attendance
+        from friday_attendance.models import FridayAttendanceRecord
+        friday_records = FridayAttendanceRecord.objects.filter(
+            member=user, status='present', session__date__range=[start_date, today]
+        ).values('session__date')
+        for f in friday_records:
+            date_str = f['session__date'].isoformat()
+            if date_str in activity_map:
+                activity_map[date_str] += 2 # +2 for friday
+
+        # Confessions
+        from confessions.models import ConfessionRecord
+        confession_records = ConfessionRecord.objects.filter(
+            member=user, has_confessed=True, date__range=[start_date, today]
+        ).values('date')
+        for c in confession_records:
+            date_str = c['date'].isoformat()
+            if date_str in activity_map:
+                activity_map[date_str] += 2 # +2 for confession
+
+        # Format output and cap at 4
+        result = []
+        for date_str, score in sorted(activity_map.items()):
+            intensity = min(score, 4)
+            result.append({'date': date_str, 'level': intensity})
+
+        return Response(result)
