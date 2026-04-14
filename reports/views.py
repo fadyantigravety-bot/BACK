@@ -176,10 +176,10 @@ class MemberActivityHeatmapView(APIView):
         # Confessions
         from confessions.models import ConfessionRecord
         confession_records = ConfessionRecord.objects.filter(
-            member=user, has_confessed=True, date__range=[start_date, today]
-        ).values('date')
+            member=user, has_confessed=True, last_confession_date__range=[start_date, today]
+        ).values('last_confession_date')
         for c in confession_records:
-            date_str = c['date'].isoformat()
+            date_str = c['last_confession_date'].isoformat()
             if date_str in activity_map:
                 activity_map[date_str] += 2 # +2 for confession
 
