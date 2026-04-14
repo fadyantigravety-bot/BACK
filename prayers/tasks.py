@@ -63,8 +63,7 @@ def send_scheduled_prayer_alerts():
     logs = PrayerLog.objects.filter(
         status='pending',
         date=now.date(),
-        scheduled_time__hour=now.hour,
-        scheduled_time__minute=now.minute,
+        scheduled_time__lte=now,
         alert_shown_at__isnull=True
     ).select_related('member', 'prayer')
 
@@ -77,7 +76,11 @@ def send_scheduled_prayer_alerts():
                 body=f"حان الآن موعد {log.prayer.name}. لتكن صلاة مقبولة.",
                 data={'prayer_id': str(log.prayer.id), 'log_id': str(log.id), 'type': Notification.NotificationType.PRAYER_ALERT}
             )
-            # Create in-app notification silently
+        except Exception:
+            pushed = False
+
+        try:
+            # Always Create in-app notification reliably
             Notification.objects.create(
                 recipient=log.member,
                 title="تذكير بالصلاة 🙏",
