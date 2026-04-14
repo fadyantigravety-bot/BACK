@@ -33,6 +33,10 @@ def send_push_notification(user, title, body, data=None):
         "large_icon": "ic_large_notification",
         "android_accent_color": "FF1B5E7B",
         "android_led_color": "FF1B5E7B",
+        "priority": 10,
+        "android_visibility": 1,
+        "ios_sound": "default",
+        "android_sound": "default"
     }
     
     headers = {
@@ -56,6 +60,7 @@ def send_push_notification(user, title, body, data=None):
     except Exception as e:
         logger.error(f'OneSignal API request failed: {e}')
         return False
+
 
 
 def create_notification(recipient, title, body, notification_type,
@@ -156,6 +161,10 @@ def send_bulk_push(users, title, body, notification_type, data=None):
                 "large_icon": "ic_large_notification",
                 "android_accent_color": "FF1B5E7B",
                 "android_led_color": "FF1B5E7B",
+                "priority": 10,
+                "android_visibility": 1,
+                "ios_sound": "default",
+                "android_sound": "default"
             }
             headers = {
                 "accept": "application/json",
@@ -166,3 +175,4 @@ def send_bulk_push(users, title, body, notification_type, data=None):
                 requests.post(url, json=payload, headers=headers, timeout=10)
             except Exception as e:
                 logger.error(f'OneSignal bulk push failed: {e}')
+

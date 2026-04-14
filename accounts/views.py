@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django_filters.rest_framework import DjangoFilterBackend
-from core.permissions import IsPriest, IsPriestOrServiceLeader
+from core.permissions import IsPriest, IsPriestOrServiceLeader, IsLeadership
+from rest_framework.exceptions import PermissionDenied
 from .models import User, PriestProfile, ServiceLeaderProfile, ServantProfile, MemberProfile
 from .serializers import (
     UserDetailSerializer, UserMinimalSerializer, UserCreateSerializer,
@@ -33,9 +34,15 @@ class LoginView(generics.GenericAPIView):
 class RegisterView(generics.CreateAPIView):
     """Create a new user account."""
     serializer_class = UserCreateSerializer
-    permission_classes = [IsPriest]
+    permission_classes = [IsLeadership]
 
     def perform_create(self, serializer):
+        user_role = self.request.user.role
+        requested_role = serializer.validated_data.get('role', 'member')
+        
+        if user_role != 'priest' and requested_role != 'member':
+            raise PermissionDenied('ليس لديك صلاحية لإضافة مستخدم بهذه الرتبة')
+            
         user = serializer.save()
         # Auto-create role profile
         role = user.role
