@@ -23,6 +23,11 @@ app.conf.beat_schedule = {
         'task': 'prayers.tasks.create_daily_prayer_logs',
         'schedule': crontab(hour=0, minute=1),
     },
+    # Runs every minute to check and send alerts for scheduled prayers
+    'send-scheduled-prayer-alerts': {
+        'task': 'prayers.tasks.send_scheduled_prayer_alerts',
+        'schedule': crontab(),  # Every minute
+    },
 
     # --- Confession Tasks ---
     # Saturday at 10:00 AM and 5:00 PM

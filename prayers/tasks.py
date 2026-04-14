@@ -49,3 +49,47 @@ def create_daily_prayer_logs():
         )
 
     return f'Created {created_count} prayer logs for {today} and notified {len(notified_members)} members'
+
+
+@shared_task
+def send_scheduled_prayer_alerts():
+    """Check for pending prayers scheduled for the current minute and send push notifications."""
+    from .models import PrayerLog
+    from notifications.services import send_push_notification
+    from notifications.models import Notification
+
+    now = timezone.localtime(timezone.now())
+    
+    logs = PrayerLog.objects.filter(
+        status='pending',
+        date=now.date(),
+        scheduled_time__hour=now.hour,
+        scheduled_time__minute=now.minute,
+        alert_shown_at__isnull=True
+    ).select_related('member', 'prayer')
+
+    count = 0
+    for log in logs:
+        try:
+            pushed = send_push_notification(
+                user=log.member,
+                title="تذكير بالصلاة 🙏",
+                body=f"حان الآن موعد {log.prayer.name}. لتكن صلاة مقبولة.",
+                data={'prayer_id': str(log.prayer.id), 'log_id': str(log.id), 'type': Notification.NotificationType.PRAYER_ALERT}
+            )
+            # Create in-app notification silently
+            Notification.objects.create(
+                recipient=log.member,
+                title="تذكير بالصلاة 🙏",
+                body=f"حان الآن موعد {log.prayer.name}. لتكن صلاة مقبولة.",
+                notification_type=Notification.NotificationType.PRAYER_ALERT,
+                is_pushed=bool(pushed)
+            )
+            
+            log.alert_shown_at = timezone.now()
+            log.save(update_fields=['alert_shown_at'])
+            count += 1
+        except Exception:
+            pass
+
+    return f"Sent {count} prayer reminders for {now.strftime('%H:%M')}"
