@@ -34,6 +34,10 @@ class DashboardStatsView(APIView):
 
         # Total members in scope
         stats['total_members'] = member_ids.count() if hasattr(member_ids, 'count') else len(member_ids)
+        
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        stats['total_servants'] = User.objects.filter(id__in=member_ids, role='servant').count()
 
         # Prayer completion for period
         from prayers.models import PrayerLog
