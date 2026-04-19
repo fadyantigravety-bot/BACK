@@ -147,6 +147,11 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         user.save(update_fields=['role'])
         
         from .models import ServantProfile
-        ServantProfile.objects.get_or_create(user=user)
+        servant_profile, created = ServantProfile.objects.get_or_create(user=user)
+        
+        # If they were a member, try to inherit their service group so they don't disappear from the stage
+        if hasattr(user, 'member_profile') and user.member_profile.service_group:
+            servant_profile.service_group = user.member_profile.service_group
+            servant_profile.save(update_fields=['service_group'])
         
         return Response({'status': 'تم ترقية المستخدم بنجاح ليكون خادماً'})
