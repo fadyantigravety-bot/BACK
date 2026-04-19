@@ -71,12 +71,19 @@ class DashboardStatsView(APIView):
 
         # Pending follow-ups
         from followups.models import FollowUpRecord
-        stats['pending_followups'] = FollowUpRecord.objects.filter(
-            member_id__in=member_ids, status='pending', date__range=[start_date, end_date]
-        ).count()
-        stats['overdue_followups'] = FollowUpRecord.objects.filter(
-            member_id__in=member_ids, status='overdue'
-        ).count()
+        
+        pending_qs = FollowUpRecord.objects.filter(status='pending', date__range=[start_date, end_date])
+        overdue_qs = FollowUpRecord.objects.filter(status='overdue')
+        
+        if user.role == 'servant':
+            pending_qs = pending_qs.filter(Q(member_id__in=member_ids) | Q(servant=user))
+            overdue_qs = overdue_qs.filter(Q(member_id__in=member_ids) | Q(servant=user))
+        else:
+            pending_qs = pending_qs.filter(member_id__in=member_ids)
+            overdue_qs = overdue_qs.filter(member_id__in=member_ids)
+            
+        stats['pending_followups'] = pending_qs.count()
+        stats['overdue_followups'] = overdue_qs.count()
 
         # Confession stats (priest only)
         if user.role == 'priest':

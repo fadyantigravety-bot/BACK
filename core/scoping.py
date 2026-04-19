@@ -19,7 +19,7 @@ def get_scoped_members(user):
                 service_group__stage=leader_profile.service_stage
             )
         except Exception:
-            return MemberProfile.objects.none()
+            return MemberProfile.objects.all()
 
     if user.role == 'servant':
         return MemberProfile.objects.filter(assigned_servant=user)
