@@ -40,7 +40,7 @@ class RegisterView(generics.CreateAPIView):
         user_role = self.request.user.role
         requested_role = serializer.validated_data.get('role', 'member')
         
-        if user_role != 'priest' and requested_role != 'member':
+        if user_role not in ['priest', 'service_leader'] and requested_role != 'member':
             raise PermissionDenied('ليس لديك صلاحية لإضافة مستخدم بهذه الرتبة')
             
         user = serializer.save()
@@ -132,7 +132,22 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             return User.objects.filter(id__in=member_ids)
         return User.objects.filter(id=user.id)
 
+
     def get_serializer_class(self):
         if self.action == 'retrieve':
             return UserDetailSerializer
         return UserMinimalSerializer
+
+    @action(detail=True, methods=['post'], permission_classes=[IsLeadership])
+    def promote_to_servant(self, request, pk=None):
+        user = self.get_object()
+        if user.role == 'servant':
+            return Response({'status': 'المستخدم خادم بالفعل'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user.role = 'servant'
+        user.save(update_fields=['role'])
+        
+        from .models import ServantProfile
+        ServantProfile.objects.get_or_create(user=user)
+        
+        return Response({'status': 'تم ترقية المستخدم بنجاح ليكون خادماً'})
