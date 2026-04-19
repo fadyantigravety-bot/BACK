@@ -126,10 +126,9 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             except Exception:
                 return User.objects.all()
         elif user.role == 'servant':
-            member_ids = MemberProfile.objects.filter(
-                assigned_servant=user
-            ).values_list('user_id', flat=True)
-            return User.objects.filter(id__in=member_ids)
+            from core.scoping import get_scoped_member_users
+            member_ids = get_scoped_member_users(user)
+            return User.objects.filter(id__in=member_ids, role='member')
         return User.objects.filter(id=user.id)
 
 

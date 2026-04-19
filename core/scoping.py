@@ -22,7 +22,21 @@ def get_scoped_members(user):
             return MemberProfile.objects.all()
 
     if user.role == 'servant':
-        return MemberProfile.objects.filter(assigned_servant=user)
+        from django.db.models import Q
+        try:
+            servant_group = user.servant_profile.service_group
+            if servant_group and servant_group.stage:
+                return MemberProfile.objects.filter(
+                    Q(assigned_servant=user) | Q(service_group__stage=servant_group.stage)
+                ).distinct()
+            elif servant_group:
+                return MemberProfile.objects.filter(
+                    Q(assigned_servant=user) | Q(service_group=servant_group)
+                ).distinct()
+            else:
+                return MemberProfile.objects.filter(assigned_servant=user)
+        except Exception:
+            return MemberProfile.objects.filter(assigned_servant=user)
 
     if user.role == 'member':
         return MemberProfile.objects.filter(user=user)
