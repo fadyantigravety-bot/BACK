@@ -18,7 +18,7 @@ users = User.objects.all()
 
 for user in users:
     create_notification(
-        recipient=user,
+        recipient=uccser,
         title=title,
         body=body,
         notification_type='system',
