@@ -124,7 +124,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
                     Q(servant_profile__service_group__stage=stage)
                 ).distinct()
             except Exception:
-                return User.objects.none()
+                return User.objects.all()
         elif user.role == 'servant':
             member_ids = MemberProfile.objects.filter(
                 assigned_servant=user
