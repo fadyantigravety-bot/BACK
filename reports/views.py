@@ -37,7 +37,21 @@ class DashboardStatsView(APIView):
         
         from django.contrib.auth import get_user_model
         User = get_user_model()
-        stats['total_servants'] = User.objects.filter(id__in=member_ids, role='servant').count()
+        
+        # Calculate total servants dynamically based on role scope
+        if user.role == 'service_leader':
+            try:
+                stage = user.serviceleaderprofile.service_stage
+                stats['total_servants'] = User.objects.filter(
+                    role='servant',
+                    servant_profile__service_group__stage=stage
+                ).count()
+            except Exception:
+                stats['total_servants'] = User.objects.filter(role='servant').count()
+        elif user.role == 'priest' or user.is_superuser:
+            stats['total_servants'] = User.objects.filter(role='servant').count()
+        else:
+            stats['total_servants'] = 0
 
         # Prayer completion for period
         from prayers.models import PrayerLog
