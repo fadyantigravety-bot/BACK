@@ -155,3 +155,45 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             servant_profile.save(update_fields=['service_group'])
         
         return Response({'status': 'تم ترقية المستخدم بنجاح ليكون خادماً'})
+
+    @action(detail=True, methods=['post'], permission_classes=[IsLeadership])
+    def demote_to_member(self, request, pk=None):
+        """Revert a servant (or leader) back to a regular member."""
+        user = self.get_object()
+        if user.role == 'member':
+            return Response({'status': 'المستخدم مخدوم بالفعل'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Delete role-specific profiles
+        if hasattr(user, 'servant_profile'):
+            user.servant_profile.delete()
+        if hasattr(user, 'serviceleaderprofile'):
+            user.serviceleaderprofile.delete()
+        
+        user.role = 'member'
+        user.save(update_fields=['role'])
+        
+        # Ensure they have a MemberProfile
+        if not hasattr(user, 'member_profile'):
+            MemberProfile.objects.create(
+                user=user,
+                date_of_birth='2000-01-01',
+                gender='male',
+            )
+        
+        return Response({'status': 'تم إرجاع المستخدم إلى مخدوم بنجاح'})
+
+
+class PublicRegisterView(generics.CreateAPIView):
+    """Public signup — anyone can create a member account."""
+    serializer_class = UserCreateSerializer
+    permission_classes = [AllowAny]
+
+    def perform_create(self, serializer):
+        # Force role to member regardless of what was sent
+        user = serializer.save(role='member')
+        MemberProfile.objects.create(
+            user=user,
+            date_of_birth=self.request.data.get('date_of_birth', '2000-01-01'),
+            gender=self.request.data.get('gender', 'male'),
+        )
+
