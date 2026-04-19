@@ -9,7 +9,7 @@ def get_scoped_members(user):
     - Servant: only assigned members
     - Member: only self
     """
-    if user.role == 'priest':
+    if user.role == 'priest' or user.is_superuser:
         return MemberProfile.objects.all()
 
     if user.role == 'service_leader':

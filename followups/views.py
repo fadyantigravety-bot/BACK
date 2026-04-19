@@ -22,8 +22,9 @@ class FollowUpRecordViewSet(viewsets.ModelViewSet):
         if user.role == 'priest':
             return qs
         if user.role in ('service_leader', 'servant'):
+            from django.db.models import Q
             member_ids = get_scoped_member_users(user)
-            return qs.filter(member_id__in=member_ids)
+            return qs.filter(Q(member_id__in=member_ids) | Q(servant=user))
         return qs.none()
 
     def get_permissions(self):
